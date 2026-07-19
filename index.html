@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>今天冰箱有什麼？｜家庭料理儀表板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2F3B2A;
+    --bg-deep:#232E1F;
+    --paper:#FBF3E1;
+    --paper-dim:#F1E7CE;
+    --ink:#22261C;
+    --ink-soft:#5B5A46;
+    --mustard:#E3A63E;
+    --berry:#B4402F;
+    --sage:#8FAF7B;
+    --line: rgba(255,255,255,0.14);
+    --hole: rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(var(--hole) 1.6px, transparent 1.6px) 0 0/22px 22px,
+      var(--bg);
+    color:var(--paper);
+    font-family:'Noto Sans TC', sans-serif;
+    min-height:100vh;
+    padding-bottom:140px;
+  }
+  a{color:inherit;}
+
+  header{
+    padding:44px 20px 18px;
+    max-width:920px;
+    margin:0 auto;
+    text-align:center;
+  }
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    color:var(--mustard);
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Noto Serif TC', serif;
+    font-weight:900;
+    font-size:clamp(28px, 5vw, 44px);
+    margin:0 0 10px;
+    letter-spacing:.02em;
+  }
+  header p{
+    color:rgba(251,243,225,0.72);
+    font-size:15px;
+    line-height:1.7;
+    max-width:520px;
+    margin:0 auto;
+  }
+
+  main{
+    max-width:920px;
+    margin:0 auto;
+    padding:10px 20px 0;
+  }
+
+  .board{
+    background:linear-gradient(180deg, var(--bg-deep), var(--bg));
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:22px 20px 26px;
+    margin-bottom:22px;
+  }
+
+  .board-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .board-title{
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:18px;
+    color:var(--paper);
+  }
+  .board-title small{
+    display:block;
+    font-family:'Noto Sans TC', sans-serif;
+    font-weight:400;
+    font-size:12px;
+    color:rgba(251,243,225,0.5);
+    margin-top:2px;
+  }
+
+  .chip-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .magnet{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 16px 9px 20px;
+    background:var(--paper);
+    color:var(--ink);
+    border:none;
+    border-radius:10px;
+    font-family:'Noto Sans TC', sans-serif;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    box-shadow:0 2px 0 rgba(0,0,0,0.18);
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, color .12s ease;
+  }
+  .magnet::before{
+    content:'';
+    position:absolute;
+    left:8px; top:50%;
+    transform:translateY(-50%);
+    width:7px; height:7px;
+    border-radius:50%;
+    background:var(--sage);
+  }
+  .magnet:hover{ transform:translateY(-1px); }
+  .magnet.on{
+    background:var(--mustard);
+    color:var(--ink);
+    transform:translateY(-2px) scale(1.03);
+    box-shadow:0 5px 0 rgba(0,0,0,0.22);
+  }
+  .magnet.on::before{ background:var(--berry); }
+
+  .custom-row{
+    display:flex;
+    gap:8px;
+    margin-top:16px;
+  }
+  .custom-row input{
+    flex:1;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:rgba(251,243,225,0.06);
+    color:var(--paper);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .custom-row input::placeholder{ color:rgba(251,243,225,0.4); }
+  .custom-row button{
+    padding:10px 16px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--paper);
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .custom-row button:hover{ border-color:var(--mustard); color:var(--mustard); }
+
+  /* selected tray - sticky ticket */
+  .tray{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    background:var(--paper);
+    color:var(--ink);
+    border-top:1px solid rgba(0,0,0,0.08);
+    padding:14px 20px;
+    box-shadow:0 -8px 30px rgba(0,0,0,0.35);
+    z-index:50;
+  }
+  .tray-inner{
+    max-width:920px;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .tray-label{
+    font-family:'Noto Serif TC', serif;
+    font-weight:700;
+    font-size:14px;
+    white-space:nowrap;
+  }
+  .tray-label span{ color:var(--berry); }
+  .tray-items{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    flex:1;
+    min-width:180px;
+  }
+  .tray-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:var(--paper-dim);
+    border-radius:999px;
+    padding:4px 6px 4px 12px;
+    font-size:13px;
+  }
+  .tray-chip button{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    width:18px;height:18px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:12px;
+    line-height:1;
+  }
+  .tray-empty{ font-size:13px; color:var(--ink-soft); }
+
+  .tray-actions{
+    display:flex;
+    gap:8px;
+  }
+  .btn-primary{
+    background:var(--berry);
+    color:#fff;
+    border:none;
+    padding:12px 22px;
+    border-radius:10px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:inherit;
+    white-space:nowrap;
+  }
+  .btn-primary:disabled{ background:#c7bfa8; cursor:not-allowed; }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid rgba(0,0,0,0.2);
+    color:var(--ink);
+    padding:12px 16px;
+    border-radius:10px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+
+  /* results */
+  .results{
+    margin-top:6px;
+  }
+  .results h2{
+    font-family:'Noto Serif TC', serif;
+    font-size:17px;
+    margin:0 0 12px;
+  }
+  .card-fan{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:12px;
+  }
+  .site-card{
+    display:block;
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:12px;
+    padding:16px;
+    text-decoration:none;
+    box-shadow:0 3px 0 rgba(0,0,0,0.2);
+    transition:transform .12s ease;
+  }
+  .site-card:hover{ transform:translateY(-3px); }
+  .site-card .name{ font-weight:700; font-size:15px; margin-bottom:4px; }
+  .site-card .desc{ font-size:12px; color:var(--ink-soft); }
+
+  .sub-block{ margin-top:18px; }
+  .sub-block h3{
+    font-size:13px;
+    letter-spacing:.06em;
+    color:rgba(251,243,225,0.6);
+    text-transform:uppercase;
+    margin:0 0 10px;
+  }
+  .history-list, .fav-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .history-row, .fav-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:rgba(251,243,225,0.06);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13px;
+  }
+  .history-row .items, .fav-row .items{ color:rgba(251,243,225,0.85); }
+  .history-row .date{ color:rgba(251,243,225,0.45); font-size:12px; white-space:nowrap; }
+  .row-btns{ display:flex; gap:6px; }
+  .mini-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--paper);
+    padding:5px 10px;
+    border-radius:8px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .mini-btn:hover{ border-color:var(--mustard); color:var(--mustard); }
+
+  .empty-note{ font-size:13px; color:rgba(251,243,225,0.45); }
+
+  footer{
+    max-width:920px;
+    margin:30px auto 0;
+    padding:0 20px;
+    color:rgba(251,243,225,0.35);
+    font-size:12px;
+    text-align:center;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Fridge Dashboard</div>
+  <h1>今天冰箱有什麼？</h1>
+  <p>點選現有食材，馬上幫你搜尋能做的菜和食譜，不用再燒腦想晚餐吃什麼。</p>
+</header>
+
+<main>
+
+  <div class="board">
+    <div class="board-head">
+      <div class="board-title">蔬菜<small>Vegetables</small></div>
+    </div>
+    <div class="chip-grid" id="grid-veg"></div>
+  </div>
+
+  <div class="board">
+    <div class="board-head">
+      <div class="board-title">肉類 / 海鮮<small>Meat &amp; Seafood</small></div>
+    </div>
+    <div class="chip-grid" id="grid-meat"></div>
+  </div>
+
+  <div class="board">
+    <div class="board-head">
+      <div class="board-title">蛋豆奶<small>Eggs, Tofu &amp; Dairy</small></div>
+    </div>
+    <div class="chip-grid" id="grid-dairy"></div>
+  </div>
+
+  <div class="board">
+    <div class="board-head">
+      <div class="board-title">主食<small>Staples</small></div>
+    </div>
+    <div class="chip-grid" id="grid-carb"></div>
+  </div>
+
+  <div class="board">
+    <div class="board-head">
+      <div class="board-title">調味 / 其他<small>Seasonings &amp; Others</small></div>
+    </div>
+    <div class="chip-grid" id="grid-misc"></div>
+    <div class="custom-row">
+      <input id="customInput" type="text" placeholder="家裡還有別的食材？輸入後按新增" />
+      <button id="customAddBtn">+ 新增食材</button>
+    </div>
+  </div>
+
+  <div class="board results" id="resultsBoard" style="display:none;">
+    <h2>幫你搜尋這個組合的食譜</h2>
+    <div class="card-fan" id="siteCards"></div>
+  </div>
+
+  <div class="board">
+    <div class="sub-block">
+      <h3>常用組合（收藏）</h3>
+      <div class="fav-list" id="favList"></div>
+    </div>
+    <div class="sub-block">
+      <h3>最近搜尋紀錄</h3>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>資料只儲存在你自己的瀏覽器裡（localStorage），不會上傳到任何地方。</footer>
+
+<div class="tray">
+  <div class="tray-inner">
+    <div class="tray-label">已選 <span id="trayCount">0</span> 樣</div>
+    <div class="tray-items" id="trayItems">
+      <span class="tray-empty">還沒點選任何食材，從上面的卡片開始點吧</span>
+    </div>
+    <div class="tray-actions">
+      <button class="btn-ghost" id="saveFavBtn">收藏組合</button>
+      <button class="btn-ghost" id="clearBtn">清空</button>
+      <button class="btn-primary" id="searchBtn" disabled>搜尋今晚菜色</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BASE_INGREDIENTS = {
+    veg:  ["高麗菜","花椰菜","青江菜","空心菜","紅蘿蔔","洋蔥","馬鈴薯","番茄","小黃瓜","茄子","苦瓜","地瓜","玉米","豆芽菜","韭菜","蔥","薑","蒜頭","辣椒","香菜"],
+    meat: ["雞胸肉","雞腿肉","豬絞肉","豬五花","牛肉片","排骨","鮭魚","鯛魚","蝦仁","花枝","蛤蜊"],
+    dairy:["雞蛋","板豆腐","嫩豆腐","豆干","牛奶","起司"],
+    carb: ["白飯","麵條","冬粉","吐司","義大利麵"],
+    misc: ["醬油","味噌","豆瓣醬","蠔油","咖哩塊","香菇","木耳","金針菇"]
+  };
+
+  var LS_CUSTOM = "fridge_custom_ingredients";
+  var LS_HISTORY = "fridge_history";
+  var LS_FAVORITES = "fridge_favorites";
+
+  var selected = new Set();
+
+  function loadJSON(key, fallback){
+    try{
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    }catch(e){ return fallback; }
+  }
+  function saveJSON(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+  }
+
+  var customIngredients = loadJSON(LS_CUSTOM, []);
+  var history = loadJSON(LS_HISTORY, []);
+  var favorites = loadJSON(LS_FAVORITES, []);
+
+  function makeMagnet(name, container){
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "magnet";
+    btn.textContent = name;
+    btn.dataset.name = name;
+    btn.addEventListener("click", function(){
+      toggle(name, btn);
+    });
+    container.appendChild(btn);
+    return btn;
+  }
+
+  function renderGrids(){
+    var vegGrid = document.getElementById("grid-veg");
+    var meatGrid = document.getElementById("grid-meat");
+    var dairyGrid = document.getElementById("grid-dairy");
+    var carbGrid = document.getElementById("grid-carb");
+    var miscGrid = document.getElementById("grid-misc");
+
+    [vegGrid, meatGrid, dairyGrid, carbGrid, miscGrid].forEach(function(g){ g.innerHTML = ""; });
+
+    BASE_INGREDIENTS.veg.forEach(function(n){ makeMagnet(n, vegGrid); });
+    BASE_INGREDIENTS.meat.forEach(function(n){ makeMagnet(n, meatGrid); });
+    BASE_INGREDIENTS.dairy.forEach(function(n){ makeMagnet(n, dairyGrid); });
+    BASE_INGREDIENTS.carb.forEach(function(n){ makeMagnet(n, carbGrid); });
+    BASE_INGREDIENTS.misc.forEach(function(n){ makeMagnet(n, miscGrid); });
+    customIngredients.forEach(function(n){ makeMagnet(n, miscGrid); });
+
+    syncMagnetStates();
+  }
+
+  function syncMagnetStates(){
+    document.querySelectorAll(".magnet").forEach(function(btn){
+      if (selected.has(btn.dataset.name)) btn.classList.add("on");
+      else btn.classList.remove("on");
+    });
+  }
+
+  function toggle(name, btnEl){
+    if (selected.has(name)) selected.delete(name);
+    else selected.add(name);
+    if (btnEl) btnEl.classList.toggle("on");
+    renderTray();
+    hideResults();
+  }
+
+  function renderTray(){
+    var trayItems = document.getElementById("trayItems");
+    var trayCount = document.getElementById("trayCount");
+    var searchBtn = document.getElementById("searchBtn");
+    trayItems.innerHTML = "";
+    var arr = Array.from(selected);
+    trayCount.textContent = arr.length;
+    searchBtn.disabled = arr.length === 0;
+
+    if (arr.length === 0){
+      var empty = document.createElement("span");
+      empty.className = "tray-empty";
+      empty.textContent = "還沒點選任何食材，從上面的卡片開始點吧";
+      trayItems.appendChild(empty);
+      return;
+    }
+
+    arr.forEach(function(name){
+      var chip = document.createElement("span");
+      chip.className = "tray-chip";
+      var label = document.createElement("span");
+      label.textContent = name;
+      var removeBtn = document.createElement("button");
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", function(){
+        selected.delete(name);
+        syncMagnetStates();
+        renderTray();
+        hideResults();
+      });
+      chip.appendChild(label);
+      chip.appendChild(removeBtn);
+      trayItems.appendChild(chip);
+    });
+  }
+
+  function hideResults(){
+    document.getElementById("resultsBoard").style.display = "none";
+  }
+
+  function buildSearchSites(items){
+    var q = items.join(" ");
+    var qPlus = items.join("+");
+    return [
+      {
+        name: "Google 搜尋",
+        desc: "綜合食譜與作法一次看",
+        url: "https://www.google.com/search?q=" + encodeURIComponent(q + " 食譜 做法")
+      },
+      {
+        name: "iCook 愛料理",
+        desc: "台灣最大家常食譜社群",
+        url: "https://icook.tw/search/" + encodeURIComponent(q)
+      },
+      {
+        name: "Cookpad 台灣",
+        desc: "媽媽們的私房食譜",
+        url: "https://cookpad.com/tw/search/" + encodeURIComponent(q)
+      },
+      {
+        name: "YouTube 影片教學",
+        desc: "看影片跟著煮更安心",
+        url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q + " 食譜 做法")
+      }
+    ];
+  }
+
+  function doSearch(){
+    var items = Array.from(selected);
+    if (items.length === 0) return;
+
+    var sites = buildSearchSites(items);
+    var resultsBoard = document.getElementById("resultsBoard");
+    var siteCards = document.getElementById("siteCards");
+    siteCards.innerHTML = "";
+
+    sites.forEach(function(site, idx){
+      var a = document.createElement("a");
+      a.className = "site-card";
+      a.href = site.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      var nameEl = document.createElement("div");
+      nameEl.className = "name";
+      nameEl.textContent = site.name;
+      var descEl = document.createElement("div");
+      descEl.className = "desc";
+      descEl.textContent = site.desc;
+      a.appendChild(nameEl);
+      a.appendChild(descEl);
+      siteCards.appendChild(a);
+    });
+
+    resultsBoard.style.display = "block";
+    resultsBoard.scrollIntoView({behavior:"smooth", block:"start"});
+
+    // 自動開啟第一個來源（Google），其餘用點的避免被瀏覽器擋彈出視窗
+    window.open(sites[0].url, "_blank", "noopener");
+
+    // 記錄搜尋紀錄
+    history.unshift({ date: new Date().toLocaleDateString("zh-TW"), items: items });
+    history = history.slice(0, 10);
+    saveJSON(LS_HISTORY, history);
+    renderHistory();
+  }
+
+  function renderHistory(){
+    var list = document.getElementById("historyList");
+    list.innerHTML = "";
+    if (history.length === 0){
+      var note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "還沒有搜尋紀錄。搜尋過的組合會顯示在這裡，方便你避免這幾天煮重複。";
+      list.appendChild(note);
+      return;
+    }
+    history.forEach(function(entry, idx){
+      var row = document.createElement("div");
+      row.className = "history-row";
+      var itemsEl = document.createElement("div");
+      itemsEl.className = "items";
+      itemsEl.textContent = entry.items.join("、");
+      var dateEl = document.createElement("div");
+      dateEl.className = "date";
+      dateEl.textContent = entry.date;
+      var btns = document.createElement("div");
+      btns.className = "row-btns";
+      var reuseBtn = document.createElement("button");
+      reuseBtn.className = "mini-btn";
+      reuseBtn.textContent = "再次套用";
+      reuseBtn.addEventListener("click", function(){ applyItems(entry.items); });
+      btns.appendChild(reuseBtn);
+
+      var left = document.createElement("div");
+      left.appendChild(itemsEl);
+      left.appendChild(dateEl);
+
+      row.appendChild(left);
+      row.appendChild(btns);
+      list.appendChild(row);
+    });
+  }
+
+  function renderFavorites(){
+    var list = document.getElementById("favList");
+    list.innerHTML = "";
+    if (favorites.length === 0){
+      var note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "把常煮的食材組合收藏起來，下次一鍵套用，不用重新點選。";
+      list.appendChild(note);
+      return;
+    }
+    favorites.forEach(function(fav, idx){
+      var row = document.createElement("div");
+      row.className = "fav-row";
+      var itemsEl = document.createElement("div");
+      itemsEl.className = "items";
+      itemsEl.textContent = fav.name + "：" + fav.items.join("、");
+      var btns = document.createElement("div");
+      btns.className = "row-btns";
+      var applyBtn = document.createElement("button");
+      applyBtn.className = "mini-btn";
+      applyBtn.textContent = "套用";
+      applyBtn.addEventListener("click", function(){ applyItems(fav.items); });
+      var delBtn = document.createElement("button");
+      delBtn.className = "mini-btn";
+      delBtn.textContent = "刪除";
+      delBtn.addEventListener("click", function(){
+        favorites.splice(idx, 1);
+        saveJSON(LS_FAVORITES, favorites);
+        renderFavorites();
+      });
+      btns.appendChild(applyBtn);
+      btns.appendChild(delBtn);
+      row.appendChild(itemsEl);
+      row.appendChild(btns);
+      list.appendChild(row);
+    });
+  }
+
+  function applyItems(items){
+    selected = new Set(items);
+    // 若組合裡有不在畫面上的自訂食材，先補上按鈕
+    items.forEach(function(name){
+      var exists = Array.from(document.querySelectorAll(".magnet")).some(function(b){ return b.dataset.name === name; });
+      if (!exists){
+        customIngredients.push(name);
+        saveJSON(LS_CUSTOM, customIngredients);
+      }
+    });
+    renderGrids();
+    renderTray();
+    hideResults();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function saveFavorite(){
+    var items = Array.from(selected);
+    if (items.length === 0) return;
+    var name = window.prompt("幫這個組合取個名字，例如「番茄炒蛋晚餐」：", items.slice(0,2).join(""));
+    if (!name) return;
+    favorites.unshift({ name: name, items: items });
+    favorites = favorites.slice(0, 12);
+    saveJSON(LS_FAVORITES, favorites);
+    renderFavorites();
+  }
+
+  function addCustomIngredient(){
+    var input = document.getElementById("customInput");
+    var name = input.value.trim();
+    if (!name) return;
+    var exists = Array.from(document.querySelectorAll(".magnet")).some(function(b){ return b.dataset.name === name; });
+    if (!exists){
+      customIngredients.push(name);
+      saveJSON(LS_CUSTOM, customIngredients);
+      var grid = document.getElementById("grid-misc");
+      var btn = makeMagnet(name, grid);
+      toggle(name, btn);
+    }
+    input.value = "";
+    input.focus();
+  }
+
+  // events
+  document.getElementById("customAddBtn").addEventListener("click", addCustomIngredient);
+  document.getElementById("customInput").addEventListener("keydown", function(e){
+    if (e.key === "Enter") addCustomIngredient();
+  });
+  document.getElementById("searchBtn").addEventListener("click", doSearch);
+  document.getElementById("saveFavBtn").addEventListener("click", saveFavorite);
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    selected.clear();
+    syncMagnetStates();
+    renderTray();
+    hideResults();
+  });
+
+  renderGrids();
+  renderTray();
+  renderHistory();
+  renderFavorites();
+})();
+</script>
+
+</body>
+</html>
