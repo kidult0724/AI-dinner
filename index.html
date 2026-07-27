@@ -166,28 +166,64 @@
             "🍚 主食與其他": []
         };
 
-        // 精準美食圖庫對應清單（確保照片內容絕對符合菜色類型）
-        const foodImagePool = {
-            fish: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&auto=format&fit=crop&q=80", // 魚類料理
-            pork: "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80", // 肉片/排餐
-            chicken: "https://images.unsplash.com/photo-1604908176997-125f2596f37c?w=600&auto=format&fit=crop&q=80", // 雞肉料理
-            vegetable: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80", // 炒菜/高麗菜
-            egg: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80", // 蛋料理
-            soup: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80", // 湯品
-            tofu: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80", // 豆腐/家常菜
-            default: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80" // 一般家常菜
-        };
-
+        // 精準家常菜專屬圖片對應庫（針對各種中式、日式家常菜細分）
         function getSmartFoodImage(dishName) {
             const name = dishName.toLowerCase();
-            if (name.includes('魚') || name.includes('鯖') || name.includes('鮭') || name.includes('蝦')) return foodImagePool.fish;
-            if (name.includes('肉') || name.includes('排') || name.includes('培根') || name.includes('絞肉')) return foodImagePool.pork;
-            if (name.includes('雞') || name.includes('翼')) return foodImagePool.chicken;
-            if (name.includes('菜') || name.includes('菇') || name.includes('炒') || name.includes('青')) return foodImagePool.vegetable;
-            if (name.includes('蛋') || name.includes('煎蛋')) return foodImagePool.egg;
-            if (name.includes('湯') || name.includes('羹')) return foodImagePool.soup;
-            if (name.includes('豆腐') || name.includes('豆')) return foodImagePool.tofu;
-            return foodImagePool.default;
+            
+            // 魚類 / 海鮮
+            if (name.includes('鯖魚') || name.includes('烤魚') || name.includes('煎魚')) {
+                return "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600&auto=format&fit=crop&q=80";
+            }
+            if (name.includes('鮭魚') || name.includes('海鮮') || name.includes('蝦')) {
+                return "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&auto=format&fit=crop&q=80";
+            }
+            
+            // 雞肉料理
+            if (name.includes('雞') || name.includes('三杯')) {
+                return "https://images.unsplash.com/photo-1604908176997-125f2596f37c?w=600&auto=format&fit=crop&q=80";
+            }
+            
+            // 豬肉 / 牛肉 / 絞肉 / 排骨
+            if (name.includes('排') || name.includes('肉片') || name.includes('炒肉') || name.includes('培根')) {
+                return "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80";
+            }
+            if (name.includes('絞肉') || name.includes('肉末') || name.includes('麻婆')) {
+                return "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 蛋料理
+            if (name.includes('蛋') || name.includes('番茄炒蛋') || name.includes('煎蛋') || name.includes('烘蛋')) {
+                return "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 豆腐料理
+            if (name.includes('豆腐') || name.includes('豆干')) {
+                return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 湯品
+            if (name.includes('湯') || name.includes('羹') || name.includes('煲')) {
+                return "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 青菜 / 炒菜類
+            if (name.includes('高麗菜') || name.includes('炒菜') || name.includes('青菜') || name.includes('花椰菜') || name.includes('菇')) {
+                return "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 主食類（麵、飯、水餃）
+            if (name.includes('麵') || name.includes('義大利麵') || name.includes('炒麵')) {
+                return "https://images.unsplash.com/photo-1612927601601-6638f047b154?w=600&auto=format&fit=crop&q=80";
+            }
+            if (name.includes('飯') || name.includes('炒飯') || name.includes('丼')) {
+                return "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&auto=format&fit=crop&q=80";
+            }
+            if (name.includes('水餃') || name.includes('餃')) {
+                return "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=600&auto=format&fit=crop&q=80";
+            }
+
+            // 預設精選美味家常菜圖
+            return "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80";
         }
 
         function init() {
@@ -369,7 +405,7 @@
             outputDiv.innerHTML = `
                 <div class="text-center py-10 space-y-3">
                     <div class="inline-block animate-spin text-2xl">🍳</div>
-                    <p class="text-slate-400 font-medium text-sm">溫馨主廚正在規劃 ${count} 道家常菜並搭配專屬美味圖片...</p>
+                    <p class="text-slate-400 font-medium text-sm">溫馨主廚正在規劃 ${count} 道家常菜並搭配精準美味圖片...</p>
                 </div>`;
             submitBtn.disabled = true;
 
@@ -403,7 +439,6 @@
                 if (data.error) throw new Error(data.error.message);
 
                 let rawText = data.candidates[0].content.parts[0].text;
-                // 清理可能包覆的 markdown 標記
                 rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                 
                 const recipeData = JSON.parse(rawText);
