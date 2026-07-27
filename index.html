@@ -52,12 +52,23 @@
                     <!-- 動態載入分類 -->
                 </div>
 
-                <!-- 自訂新增食材輸入框 -->
-                <div class="flex gap-2 pt-4 border-t border-slate-100">
-                    <input type="text" id="customIngredientInput" placeholder="新增其他食材（例如：杏鮑菇、花椰菜）" 
-                           class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
-                           onkeypress="if(event.key === 'Enter') addCustomIngredient()">
-                    <button onclick="addCustomIngredient()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-sm">新增</button>
+                <!-- 自訂新增食材輸入與分類選擇 -->
+                <div class="pt-4 border-t border-slate-100 space-y-3">
+                    <label class="block text-xs font-semibold text-slate-500">新增自訂食材</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="customIngredientInput" placeholder="輸入食材名稱（例如：杏鮑菇）" 
+                               class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                               onkeypress="if(event.key === 'Enter') addCustomIngredient()">
+                        
+                        <select id="customCategorySelect" class="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition">
+                            <option value="🥩 肉品與海鮮">🥩 肉品與海鮮</option>
+                            <option value="🥬 蔬菜與菇類" selected>🥬 蔬菜與菇類</option>
+                            <option value="🥚 蛋奶與豆製品">🥚 蛋奶與豆製品</option>
+                            <option value="🍚 主食與其他">🍚 主食與其他</option>
+                        </select>
+
+                        <button onclick="addCustomIngredient()" class="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-sm">加入分類</button>
+                    </div>
                 </div>
             </div>
 
@@ -129,15 +140,21 @@
 
     <!-- JavaScript 邏輯 -->
     <script>
-        // 分類的食材資料結構
-        const categorizedIngredients = {
+        // 預設分類食材
+        const defaultCategories = {
             "🥩 肉品與海鮮": ["牛排", "豬肉片", "雞肉", "豬絞肉", "培根", "香腸", "蝦仁", "鮭魚片", "鯖魚", "花枝"],
             "🥬 蔬菜與菇類": ["高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", "馬鈴薯", "花椰菜", "大白菜", "香菇", "四季豆"],
             "🥚 蛋奶與豆製品": ["雞蛋", "豆腐", "起司", "牛奶", "豆漿"],
             "🍚 主食與其他": ["白米", "泡麵", "白麵條", "水餃", "吐司"]
         };
 
-        let customIngredients = JSON.parse(localStorage.getItem('customIngredients')) || [];
+        // 讀取本機儲存的自訂食材（格式改為記錄其所屬分類與品項）
+        let customCategories = JSON.parse(localStorage.getItem('customCategories')) || {
+            "🥩 肉品與海鮮": [],
+            "🥬 蔬菜與菇類": [],
+            "🥚 蛋奶與豆製品": [],
+            "🍚 主食與其他": []
+        };
 
         function init() {
             const savedKey = localStorage.getItem('gemini_api_key');
@@ -158,33 +175,21 @@
             
             let html = '';
 
-            // 渲染既有分類
-            for (const [categoryName, items] of Object.entries(categorizedIngredients)) {
+            // 合併預設與自訂分類進行渲染
+            const allCategoryKeys = Object.keys(defaultCategories);
+
+            allCategoryKeys.forEach(catName => {
+                const defaultItems = defaultCategories[catName] || [];
+                const customItems = customCategories[catName] || [];
+                const combinedItems = [...defaultItems, ...customItems];
+
                 html += `
                     <div class="space-y-2">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600/80">${categoryName}</h3>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600/80">${catName}</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 `;
-                items.forEach(item => {
-                    const isChecked = savedChecked.includes(item) ? 'checked' : '';
-                    html += `
-                        <label class="flex items-center space-x-2.5 p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl hover:bg-orange-50/50 hover:border-orange-200 cursor-pointer transition select-none">
-                            <input type="checkbox" value="${item}" ${isChecked} onchange="saveState()" class="ingredient-checkbox w-4 h-4 text-orange-500 rounded focus:ring-orange-500/20 border-slate-300">
-                            <span class="text-sm font-medium text-slate-700">${item}</span>
-                        </label>
-                    `;
-                });
-                html += `</div></div>`;
-            }
 
-            // 如果有自訂新增的食材，獨立放在一個「自訂食材」分類中
-            if (customIngredients.length > 0) {
-                html += `
-                    <div class="space-y-2 pt-2 border-t border-slate-100">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600/80">🏷️ 自訂新增食材</h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                `;
-                customIngredients.forEach(item => {
+                combinedItems.forEach(item => {
                     const isChecked = savedChecked.includes(item) ? 'checked' : '';
                     html += `
                         <label class="flex items-center space-x-2.5 p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl hover:bg-orange-50/50 hover:border-orange-200 cursor-pointer transition select-none">
@@ -193,29 +198,42 @@
                         </label>
                     `;
                 });
+
                 html += `</div></div>`;
-            }
+            });
 
             container.innerHTML = html;
         }
 
         function addCustomIngredient() {
             const input = document.getElementById('customIngredientInput');
+            const select = document.getElementById('customCategorySelect');
             const val = input.value.trim();
+            const targetCategory = select.value;
+
             if (!val) return;
 
-            // 檢查是否已存在於任何分類或自訂中
-            const allExisting = Object.values(categorizedIngredients).flat();
-            if (!allExisting.includes(val) && !customIngredients.includes(val)) {
-                customIngredients.push(val);
-                localStorage.setItem('customIngredients', JSON.stringify(customIngredients));
+            // 檢查是否已存在於任何分類中
+            let allExistingItems = [];
+            Object.values(defaultCategories).forEach(arr => allExistingItems.push(...arr));
+            Object.values(customCategories).forEach(arr => allExistingItems.push(...arr));
+
+            if (!allExistingItems.includes(val)) {
+                if (!customCategories[targetCategory]) {
+                    customCategories[targetCategory] = [];
+                }
+                customCategories[targetCategory].push(val);
+                localStorage.setItem('customCategories', JSON.stringify(customCategories));
                 
+                // 自動勾選新加入的食材
                 let savedChecked = JSON.parse(localStorage.getItem('checkedIngredients')) || [];
                 savedChecked.push(val);
                 localStorage.setItem('checkedIngredients', JSON.stringify(savedChecked));
 
                 input.value = '';
                 renderIngredients();
+            } else {
+                alert('這個食材已經存在清單中囉！');
             }
         }
 
@@ -267,7 +285,7 @@
 【特別需求】：
 - 菜系風格：${cuisine}
 - 料理風格/情境：${vibe}
-- 可以搭配一般家裡一定會有的基礎調味料（如鹽、油、醬油、糖、白胡椒等）。
+- 可以搭配一般家裡一定會有的基礎調味料（如鹽, 油, 醬油, 糖, 白胡椒等）。
 
 請用清晰的 HTML 結構或排版（帶有適當的標題與條列）回答，每道料理需包含：
 1. 料理名稱
