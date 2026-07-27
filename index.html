@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🧊 冰箱清冰箱料理助手 (AI 繪圖版)</title>
+    <title>🧊 冰箱清冰箱料理助手</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -21,10 +21,10 @@
         <!-- 標題區塊 -->
         <header class="text-center space-y-1.5">
             <div class="inline-flex items-center justify-center w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl shadow-inner text-xl mb-1">
-                🎨
+                🍳
             </div>
             <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">冰箱清冰箱料理助手</h1>
-            <p class="text-xs sm:text-sm text-slate-500">勾選現有食材，透過 AI 為您量身打造食譜與專屬繪製成品照！</p>
+            <p class="text-xs sm:text-sm text-slate-500">勾選現有食材，為小家庭規劃溫馨家常菜與專屬成品照！</p>
         </header>
 
         <!-- 設定 API Key 區塊 -->
@@ -40,7 +40,7 @@
         <!-- 主功能面板 -->
         <main class="space-y-4 sm:space-y-6">
             
-            <!-- 食材勾選區塊 (分類呈現) -->
+            <!-- 食材勾選區塊 -->
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -117,13 +117,13 @@
             <!-- 生成按鈕 -->
             <button onclick="generateRecipes()" id="submitBtn" 
                     class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md transition duration-200 flex items-center justify-center gap-2 text-base active:scale-[0.99]">
-                <span>🎨</span> 請 AI 為我們生成專屬食譜與即時繪圖！
+                <span>🍳</span> 為我們生成今天的溫馨食譜與專屬成品照！
             </button>
 
             <!-- 結果顯示區塊 -->
             <div id="resultSection" class="hidden bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 overflow-hidden">
                 <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <span>✨</span> 主廚特選食譜與 AI 即時繪製成品照
+                    <span>✨</span> 主廚特選食譜與專屬成品預覽
                 </h3>
                 <div id="recipeOutput" class="space-y-6 text-slate-700 leading-relaxed text-sm sm:text-base">
                     <!-- 結果 -->
@@ -165,14 +165,6 @@
             "🥚 蛋奶與豆製品": [],
             "🍚 主食與其他": []
         };
-
-        // 核心：透過 AI 繪圖引擎根據產出的菜名即時產生專屬圖片 URL
-        function getAIGeneratedImageURL(dishName) {
-            // 將中文菜名轉為英文提示詞給 AI 生圖模型，確保畫面精準美味
-            const prompt = `delicious home-cooked Asian dish, ${dishName}, professional food photography, high resolution, appetizing lighting, photorealistic`;
-            // 使用公開且穩定的即時免費 AI 生圖 API
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=600&height=400&nologo=true`;
-        }
 
         function init() {
             const savedKey = localStorage.getItem('gemini_api_key');
@@ -352,16 +344,17 @@
             resultSection.classList.remove('hidden');
             outputDiv.innerHTML = `
                 <div class="text-center py-10 space-y-3">
-                    <div class="inline-block animate-spin text-2xl">🎨</div>
-                    <p class="text-slate-400 font-medium text-sm">AI 正在為您設計食譜，並即時繪製專屬美味成品照（約需 5-10 秒）...</p>
+                    <div class="inline-block animate-spin text-2xl">🍳</div>
+                    <p class="text-slate-400 font-medium text-sm">溫馨主廚正在為您規劃食譜並準備專屬美味成品照 (約需數秒鐘)...</p>
                 </div>`;
             submitBtn.disabled = true;
 
+            // 關鍵修改：要求 Gemini 在生成 JSON 時，額外提供一段純英文的 imagePrompt，以確保繪圖引擎能精準作畫
             const prompt = `我手邊有的冰箱食材有：${checked.join('、')}。
 請以專業主廚的角度，為小家庭設計 ${count} 道溫馨家常的美味料理。
 【偏好設定】：菜系風格：${cuisine} | 料理風格：${vibe}
 
-請務必嚴格使用 JSON 格式回傳，不要夾帶任何 markdown 程式碼區塊標記（如 \`\`\`json），直接輸出純 JSON 字串，結構如下：
+請務必嚴格使用 JSON 格式回傳，直接輸出純 JSON 字串，不要包含 \`\`\`json 標籤，結構如下：
 {
   "summary": "給使用者的一段溫馨主廚短評與打氣話語",
   "recipes": [
@@ -369,7 +362,8 @@
       "name": "料理名稱（例如：香蒜培根炒高麗菜）",
       "ingredients": "使用到的主要食材與份量",
       "steps": "詳細烹調步驟（請用數字條列）",
-      "tips": "主廚貼心小建議"
+      "tips": "主廚貼心小建議",
+      "imagePrompt": "A highly detailed English prompt describing the visual appearance of this specific dish, optimized for an image generator. Include keywords like 'Asian home-cooked dish', specific main ingredients visible, 'served on a ceramic plate', 'professional food photography', 'realistic'."
     }
   ]
 }`;
@@ -399,8 +393,9 @@
                 `;
 
                 recipeData.recipes.forEach((r, idx) => {
-                    // 呼叫 AI 即時繪圖函式，依據產出的菜名即時畫出對應圖片
-                    const aiImageURL = getAIGeneratedImageURL(r.name);
+                    // 使用 Gemini 生成的純英文畫面描述來請求圖片，確保極高的準確度
+                    const generatedImageURL = `https://image.pollinations.ai/prompt/${encodeURIComponent(r.imagePrompt)}?width=600&height=400&nologo=true`;
+                    
                     htmlContent += `
                         <div class="p-4 sm:p-5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3.5 overflow-hidden">
                             <div class="flex items-center gap-2">
@@ -408,7 +403,7 @@
                                 <h4 class="text-base sm:text-lg font-bold text-slate-900">${r.name}</h4>
                             </div>
                             <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-slate-100 flex items-center justify-center min-h-[12rem]">
-                                <img src="${aiImageURL}" alt="${r.name}" class="w-full h-48 sm:h-56 object-cover hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80';">
+                                <img src="${generatedImageURL}" alt="${r.name}" class="w-full h-48 sm:h-56 object-cover hover:scale-105 transition duration-300" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80';">
                             </div>
                             <div class="space-y-2 text-sm text-slate-700">
                                 <div><strong class="text-slate-900">🛒 食材：</strong>${r.ingredients}</div>
