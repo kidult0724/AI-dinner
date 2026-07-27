@@ -7,7 +7,7 @@
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-p-6">
+<body class="bg-slate-50 text-slate-800 min-h-screen py-6">
     <div class="max-w-3xl mx-auto p-4 sm:p-6">
         
         <!-- 標題 -->
@@ -26,19 +26,19 @@
         <!-- 食材清單區塊 -->
         <main class="space-y-6">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-xl font-semibold mb-4 text-slate-800 flex items-center justify-between">
-                    <span>🛒 現有食材勾選</span>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-slate-800">🛒 現有食材勾選</h2>
                     <button onclick="clearAll()" class="text-xs text-rose-500 hover:underline">清除所有勾選</button>
-                </h2>
+                </div>
 
-                <!-- 常見固定食材 -->
+                <!-- 豐富的常見固定食材 -->
                 <div id="ingredientCategories" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                    <!-- 動態帶入或預設 -->
+                    <!-- 動態帶入 -->
                 </div>
 
                 <!-- 自訂新增食材輸入框 -->
                 <div class="flex gap-2 pt-4 border-t border-slate-100">
-                    <input type="text" id="customIngredientInput" placeholder="新增其他食材（例如：杏鮑菇）" 
+                    <input type="text" id="customIngredientInput" placeholder="新增其他食材（例如：杏鮑菇、花椰菜）" 
                            class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <button onclick="addCustomIngredient()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-700 transition">新增</button>
                 </div>
@@ -62,14 +62,21 @@
 
     <!-- JavaScript 邏輯 -->
     <script>
-        // 預設常見食材清單
+        // 豐富的常見冰箱食材清單
         const defaultIngredients = [
-            "雞蛋", "牛排", "豬肉片", "雞肉", "高麗菜", 
-            "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", 
-            "豆腐", "起司", "牛奶", "醬油", "米酒"
+            // 蛋奶豆製品
+            "雞蛋", "豆腐", "起司", "牛奶", "豆漿",
+            // 肉品類
+            "牛排", "豬肉片", "雞肉", "豬絞肉", "培根", "香腸",
+            // 海鮮類
+            "蝦仁", "鮭魚片", "鯖魚", "花枝",
+            // 蔬菜類
+            "高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", 
+            "馬鈴薯", "花椰菜", "大白菜", "香菇", "四季豆",
+            // 主食與其他
+            "白米", "泡麵", "白麵條", "水餃", "吐司"
         ];
 
-        let allIngredients = [...defaultIngredients];
         let customIngredients = JSON.parse(localStorage.getItem('customIngredients')) || [];
 
         function init() {
@@ -97,7 +104,7 @@
             container.innerHTML = combined.map(item => {
                 const isChecked = savedChecked.includes(item) ? 'checked' : '';
                 return `
-                    <label class="flex items-center space-x-2 p-2 border border-slate-100 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <label class="flex items-center space-x-2 p-2.5 border border-slate-100 rounded-lg hover:bg-slate-50 cursor-pointer transition">
                         <input type="checkbox" value="${item}" ${isChecked} onchange="saveState()" class="ingredient-checkbox w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500">
                         <span class="text-sm font-medium text-slate-700">${item}</span>
                     </label>
@@ -110,7 +117,7 @@
             const val = input.value.trim();
             if (!val) return;
 
-            if (!allIngredients.includes(val) && !customIngredients.includes(val)) {
+            if (!defaultIngredients.includes(val) && !customIngredients.includes(val)) {
                 customIngredients.push(val);
                 localStorage.setItem('customIngredients', JSON.stringify(customIngredients));
                 
@@ -160,7 +167,7 @@
             submitBtn.disabled = true;
 
             const prompt = `我目前手邊有的冰箱食材有：${checked.join('、')}。
-請以專業主廚的角度，為小家庭設計 2 道可以利用這些現有食材完成的美味料理（可以搭配一般家裡一定會有的基礎調味料如鹽、油、醬油等）。
+請以專業主廚的角度，為小家庭設計 2 道可以利用這些現有食材完成的美味料理（可以搭配一般家裡一定會有的基礎調味料如鹽、油、醬油、糖等）。
 請用清晰的 HTML 排版或 Markdown 格式回答，包含：
 1. 料理名稱
 2. 需要用到的食材與份量
@@ -168,8 +175,8 @@
 4. 貼心小建議（例如可以替換的配料）`;
 
             try {
-                // 呼叫 Gemini API (使用 gemini-2.5-flash 或對應的標準模型)
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                // 呼叫 Gemini API (使用最新的 gemini-3.6-flash 模型)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -183,10 +190,9 @@
                 }
 
                 const text = data.candidates[0].content.parts[0].text;
-                // 簡單轉換換行符號以符合 HTML 顯示
                 outputDiv.innerHTML = `<div class="prose max-w-none">${text.replace(/\n/g, '<br>')}</div>`;
             } catch (error) {
-                outputDiv.innerHTML = `<div class="text-rose-500">發生錯誤：${error.message}</div>`;
+                outputDiv.innerHTML = `<div class="text-rose-500 font-medium">發生錯誤：${error.message}</div>`;
             } finally {
                 submitBtn.disabled = false;
             }
