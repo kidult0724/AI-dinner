@@ -38,22 +38,22 @@
         <!-- 主功能面板 -->
         <main class="space-y-6">
             
-            <!-- 食材勾選區塊 -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100/80 space-y-4">
-                <div class="flex items-center justify-between">
+            <!-- 食材勾選區塊 (分類呈現) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100/80 space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                     <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <span>🛒</span> 現有食材清單
                     </h2>
                     <button onclick="clearAll()" class="text-xs text-rose-500 hover:text-rose-600 font-medium transition">清除所有勾選</button>
                 </div>
 
-                <!-- 豐富固定食材 -->
-                <div id="ingredientCategories" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    <!-- 動態帶入 -->
+                <!-- 分類容器 -->
+                <div id="ingredientCategories" class="space-y-5">
+                    <!-- 動態載入分類 -->
                 </div>
 
                 <!-- 自訂新增食材輸入框 -->
-                <div class="flex gap-2 pt-2 border-t border-slate-100">
+                <div class="flex gap-2 pt-4 border-t border-slate-100">
                     <input type="text" id="customIngredientInput" placeholder="新增其他食材（例如：杏鮑菇、花椰菜）" 
                            class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                            onkeypress="if(event.key === 'Enter') addCustomIngredient()">
@@ -129,14 +129,13 @@
 
     <!-- JavaScript 邏輯 -->
     <script>
-        const defaultIngredients = [
-            "雞蛋", "豆腐", "起司", "牛奶", "豆漿",
-            "牛排", "豬肉片", "雞肉", "豬絞肉", "培根", "香腸",
-            "蝦仁", "鮭魚片", "鯖魚", "花枝",
-            "高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", 
-            "馬鈴薯", "花椰菜", "大白菜", "香菇", "四季豆",
-            "白米", "泡麵", "白麵條", "水餃", "吐司"
-        ];
+        // 分類的食材資料結構
+        const categorizedIngredients = {
+            "🥩 肉品與海鮮": ["牛排", "豬肉片", "雞肉", "豬絞肉", "培根", "香腸", "蝦仁", "鮭魚片", "鯖魚", "花枝"],
+            "🥬 蔬菜與菇類": ["高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", "馬鈴薯", "花椰菜", "大白菜", "香菇", "四季豆"],
+            "🥚 蛋奶與豆製品": ["雞蛋", "豆腐", "起司", "牛奶", "豆漿"],
+            "🍚 主食與其他": ["白米", "泡麵", "白麵條", "水餃", "吐司"]
+        };
 
         let customIngredients = JSON.parse(localStorage.getItem('customIngredients')) || [];
 
@@ -156,17 +155,48 @@
         function renderIngredients() {
             const container = document.getElementById('ingredientCategories');
             const savedChecked = JSON.parse(localStorage.getItem('checkedIngredients')) || [];
-            const combined = [...defaultIngredients, ...customIngredients];
             
-            container.innerHTML = combined.map(item => {
-                const isChecked = savedChecked.includes(item) ? 'checked' : '';
-                return `
-                    <label class="flex items-center space-x-2.5 p-3 bg-slate-50/70 border border-slate-100 rounded-xl hover:bg-orange-50/50 hover:border-orange-200 cursor-pointer transition select-none">
-                        <input type="checkbox" value="${item}" ${isChecked} onchange="saveState()" class="ingredient-checkbox w-4 h-4 text-orange-500 rounded focus:ring-orange-500/20 border-slate-300">
-                        <span class="text-sm font-medium text-slate-700">${item}</span>
-                    </label>
+            let html = '';
+
+            // 渲染既有分類
+            for (const [categoryName, items] of Object.entries(categorizedIngredients)) {
+                html += `
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600/80">${categoryName}</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 `;
-            }).join('');
+                items.forEach(item => {
+                    const isChecked = savedChecked.includes(item) ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center space-x-2.5 p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl hover:bg-orange-50/50 hover:border-orange-200 cursor-pointer transition select-none">
+                            <input type="checkbox" value="${item}" ${isChecked} onchange="saveState()" class="ingredient-checkbox w-4 h-4 text-orange-500 rounded focus:ring-orange-500/20 border-slate-300">
+                            <span class="text-sm font-medium text-slate-700">${item}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            // 如果有自訂新增的食材，獨立放在一個「自訂食材」分類中
+            if (customIngredients.length > 0) {
+                html += `
+                    <div class="space-y-2 pt-2 border-t border-slate-100">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-orange-600/80">🏷️ 自訂新增食材</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                `;
+                customIngredients.forEach(item => {
+                    const isChecked = savedChecked.includes(item) ? 'checked' : '';
+                    html += `
+                        <label class="flex items-center space-x-2.5 p-2.5 bg-slate-50/70 border border-slate-100 rounded-xl hover:bg-orange-50/50 hover:border-orange-200 cursor-pointer transition select-none">
+                            <input type="checkbox" value="${item}" ${isChecked} onchange="saveState()" class="ingredient-checkbox w-4 h-4 text-orange-500 rounded focus:ring-orange-500/20 border-slate-300">
+                            <span class="text-sm font-medium text-slate-700">${item}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+            container.innerHTML = html;
         }
 
         function addCustomIngredient() {
@@ -174,7 +204,9 @@
             const val = input.value.trim();
             if (!val) return;
 
-            if (!defaultIngredients.includes(val) && !customIngredients.includes(val)) {
+            // 檢查是否已存在於任何分類或自訂中
+            const allExisting = Object.values(categorizedIngredients).flat();
+            if (!allExisting.includes(val) && !customIngredients.includes(val)) {
                 customIngredients.push(val);
                 localStorage.setItem('customIngredients', JSON.stringify(customIngredients));
                 
