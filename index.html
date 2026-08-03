@@ -347,7 +347,7 @@
             outputDiv.innerHTML = `
                 <div class="text-center py-10 space-y-3">
                     <div class="inline-block animate-spin text-2xl">🍳</div>
-                    <p class="text-slate-400 font-medium text-sm">正在自動偵測可用模型並規劃食譜 (約需數秒鐘)...</p>
+                    <p class="text-slate-400 font-medium text-sm">正在尋找最佳可用模型並為您設計食譜...</p>
                 </div>`;
             submitBtn.disabled = true;
 
@@ -369,7 +369,7 @@
 }`;
 
             try {
-                // 1. 動態向 Google 查詢此 API Key 可用的模型清單
+                // 1. 動態取得所有可用模型
                 const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 const listData = await listRes.json();
 
@@ -378,48 +378,71 @@
                 }
 
                 if (!listData.models || listData.models.length === 0) {
-                    throw new Error("此 API Key 未包含任何可用模型，請確認是否是在 Google AI Studio 建立的專案。");
+                    throw new Error("此 API Key 未找到可用模型。");
                 }
 
-                // 2. 篩選支援 generateContent 的模型
-                const availableModels = listData.models.filter(m => 
-                    m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+                // 2. 篩選支援 generateContent 的模型，並排除文字/嵌入專用模型
+                let availableModels = listData.models.filter(m => 
+                    m.supportedGenerationMethods && 
+                    m.supportedGenerationMethods.includes("generateContent") &&
+                    !m.name.includes("text-") &&
+                    !m.name.includes("embedding")
                 );
 
                 if (availableModels.length === 0) {
-                    throw new Error("找不到支援文字生成的模型。");
+                    throw new Error("找不到支援生成對話的可用模型。");
                 }
 
-                // 優先選擇 flash 相關模型
-                let targetModelObj = availableModels.find(m => m.name.includes("flash") && !m.name.includes("lite")) 
-                                  || availableModels.find(m => m.name.includes("flash")) 
-                                  || availableModels[0];
-
-                const targetModelPath = targetModelObj.name; // 例如 "models/gemini-2.0-flash"
-
-                // 3. 呼叫生成食譜 API
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${targetModelPath}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            responseMimeType: "application/json"
-                        }
-                    })
+                // 3. 模型偏好排序 (優先嘗試最新的 2.0-flash / 1.5-flash / flash 系列)
+                availableModels.sort((a, b) => {
+                    const getScore = (name) => {
+                        if (name.includes("gemini-2.0-flash")) return 10;
+                        if (name.includes("gemini-1.5-flash")) return 9;
+                        if (name.includes("flash")) return 5;
+                        return 1;
+                    };
+                    return getScore(b.name) - getScore(a.name);
                 });
 
-                const data = await response.json();
+                let successData = null;
+                let errorLogs = [];
 
-                if (data.error) {
-                    throw new Error(`[${targetModelPath}] ${data.error.message}`);
+                // 4. 輪詢嘗試可用模型，若遇到舊模型/停用模型則自動切換下一個！
+                for (const modelObj of availableModels) {
+                    const modelPath = modelObj.name; // 例如 "models/gemini-2.0-flash"
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: prompt }] }],
+                                generationConfig: {
+                                    responseMimeType: "application/json"
+                                }
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            errorLogs.push(`[${modelPath}]: ${data.error.message}`);
+                            continue; // 嘗試下一個模型
+                        }
+
+                        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                            successData = data;
+                            break; // 成功回傳！跳出迴圈
+                        }
+                    } catch (err) {
+                        errorLogs.push(`[${modelPath} 網路錯誤]: ${err.message}`);
+                    }
                 }
 
-                if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) {
-                    throw new Error("模型未正確回傳回應內容。");
+                if (!successData) {
+                    throw new Error("所有可用模型皆嘗試失敗：<br>" + errorLogs.join('<br>'));
                 }
 
-                let rawText = data.candidates[0].content.parts[0].text;
+                let rawText = successData.candidates[0].content.parts[0].text;
                 rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
                 
                 const recipeData = JSON.parse(rawText);
