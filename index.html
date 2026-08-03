@@ -154,7 +154,7 @@
     <script>
         const defaultCategories = {
             "🥩 肉品與海鮮": ["牛排", "豬肉片", "雞肉", "豬絞肉", "培根", "香腸", "蝦仁", "鮭魚片", "鯖魚", "花枝"],
-            "🥬 蔬菜與菇類": ["高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", "馬鈴薯", "花椰菜", "大白菜", "香菇", "四季豆"],
+            "🥬 蔬菜與菇類": ["高麗菜", "洋蔥", "紅蘿蔔", "番茄", "青蔥", "蒜頭", "馬鹹薯", "花椰菜", "大白菜", "香菇", "四季豆"],
             "🥚 蛋奶與豆製品": ["雞蛋", "豆腐", "起司", "牛奶", "豆漿"],
             "🍚 主食與其他": ["白米", "泡麵", "白麵條", "水餃", "吐司"]
         };
@@ -368,15 +368,13 @@
   ]
 }`;
 
-            // 候選模型清單：自動依序輪詢，找到目前可用且有額度的模型
+            // 使用官方標準的模型名稱
             const candidateModels = [
                 'gemini-2.0-flash',
-                'gemini-2.0-flash-lite',
-                'gemini-1.5-flash-latest',
-                'gemini-1.5-flash-002'
+                'gemini-1.5-flash'
             ];
 
-            let lastError = null;
+            let lastErrorMessage = '';
             let successData = null;
 
             for (const modelName of candidateModels) {
@@ -394,22 +392,22 @@
 
                     const data = await response.json();
                     if (data.error) {
-                        throw new Error(`[${modelName}] ${data.error.message}`);
+                        lastErrorMessage = data.error.message;
+                        continue;
                     }
 
                     if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
                         successData = data;
-                        break; // 成功回傳，終止輪詢
+                        break;
                     }
                 } catch (err) {
-                    console.warn(`嘗試模型 ${modelName} 失敗:`, err.message);
-                    lastError = err;
+                    lastErrorMessage = err.message;
                 }
             }
 
             try {
                 if (!successData) {
-                    throw new Error(lastError ? lastError.message : '所有模型嘗試皆失敗，請檢查 API Key 設定。');
+                    throw new Error(lastErrorMessage || '無法連線至 Gemini API。');
                 }
 
                 let rawText = successData.candidates[0].content.parts[0].text;
@@ -446,7 +444,21 @@
                 saveHistory(htmlContent, checked);
 
             } catch (error) {
-                outputDiv.innerHTML = `<div class="p-4 bg-rose-50 text-rose-600 rounded-xl font-medium text-sm">發生錯誤：${error.message}<br><br>💡 <strong>提示</strong>：若持續顯示 limit: 0，請至 <a href="[https://aistudio.google.com/](https://aistudio.google.com/)" target="_blank" class="underline font-bold">Google AI Studio</a> 點擊 「Get API Key」重新在新專案中建立一把 Key。</div>`;
+                let isQuotaZero = error.message.includes('limit: 0') || error.message.includes('Quota exceeded');
+                
+                outputDiv.innerHTML = `
+                    <div class="p-4 bg-rose-50 text-rose-600 rounded-xl text-sm space-y-2">
+                        <div class="font-bold">❌ 發生錯誤：${error.message}</div>
+                        ${isQuotaZero ? `
+                            <div class="mt-2 pt-2 border-t border-rose-200 text-xs text-rose-700 leading-relaxed">
+                                <strong>💡 如何解決「Quota exceeded (limit: 0)」：</strong><br>
+                                1. 請開啟 <a href="[https://aistudio.google.com/](https://aistudio.google.com/)" target="_blank" class="underline font-bold text-rose-800">Google AI Studio</a><br>
+                                2. 點擊 <strong>Get API Key</strong> -> 點擊 <strong>Create API Key in new project</strong><br>
+                                3. 將重新生成的 Key 貼回最上方輸入框即可正常使用！
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
             } finally {
                 submitBtn.disabled = false;
             }
